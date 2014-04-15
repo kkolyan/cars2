@@ -10,6 +10,18 @@
 <html>
 <head>
     <title></title>
+    <style>
+        table {
+            border-collapse: collapse;
+        }
+        td,th {
+            border: 1px solid #CCC;
+            padding: 1px 5px;
+        }
+        th {
+            background: #EEE;
+        }
+    </style>
 </head>
 <body>
     <form>
@@ -34,8 +46,10 @@
             <input name="minCount" value="<%=ObjectUtils.toString(request.getParameter("minCount"), "0")%>"/>
         </label>
         <input type="submit" value="Показать"/>
+        <input type="hidden" name="show" value="true"/>
     </form>
  <%
+     response.flushBuffer();
      JdbcTemplate template = WebApplicationContextUtils.getRequiredWebApplicationContext(application).getBean(JdbcTemplate.class);
 
      NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(template);
@@ -44,26 +58,27 @@
          params.put(param.getKey(), param.getValue()[0]);
      }
 
-     if (request.getParameter("submit") != null) {
+     if (request.getParameter("show") != null) {
 
          List<Map<String, Object>> data = namedTemplate.queryForList(
                  "" +
                          "select mark, model, year, avg(price) prc, count(*) cnt " +
-                         "where mark + ' ' + model like '%'+:keyword+'%' " +
+                         "from offers " +
+                         "where upper(concat(mark, ' ', model)) like upper(concat('%',:keyword,'%')) " +
+                         "group by mark, model, year " +
+                         "having cnt > :minCount " +
                          "and year > :minYear " +
                          "and prc > :minPrice and prc < :maxPrice " +
-                         "from offers group by mark, model, year " +
-                         "having cnt > :minCount " +
                          "order by mark, model", params);
          net.kkolyan.pivot.Pivot pivot = new net.kkolyan.pivot.Pivot();
          pivot.setData(data);
          pivot.setXAxis("year");
          pivot.setYAxis("mark, model");
          pivot.setZAxis("prc, cnt");
-         pivot.setZFormat("~%,d р (%sшт)");
+         pivot.setZFormat("~%,f р (%sшт)");
          request.setAttribute("pivot", pivot);
 
-         request.getRequestDispatcher("generic_pivot.jsp").include(request, response);
+         pageContext.include("generic_pivot.jsp");
      }
 
  %>

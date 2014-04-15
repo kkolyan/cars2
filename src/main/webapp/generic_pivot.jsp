@@ -2,7 +2,6 @@
 <%@ page import="org.apache.commons.lang.StringUtils" %>
 <%@ page import="net.kkolyan.pivot.Pivot" %>
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
-<html>
 <%!
 
     Object getValue(Map<String,?> row, String column, final String format) {
