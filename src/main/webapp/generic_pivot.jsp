@@ -15,7 +15,7 @@
                 if (format == null || format.isEmpty()) {
                     return StringUtils.join(this, " ");
                 }
-                return String.format(format, toArray());
+                return String.format(Locale.forLanguageTag("ru"), format, toArray());
             }
         };
         for (String key: column.split(",")) {

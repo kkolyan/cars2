@@ -1,6 +1,7 @@
 package net.kkolyan.pivot;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 /**

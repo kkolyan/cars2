@@ -6,6 +6,8 @@
 <%@ page import="org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate" %>
 <%@ page import="org.springframework.util.LinkedCaseInsensitiveMap" %>
 <%@ page import="org.apache.commons.lang.ObjectUtils" %>
+<%@ page import="java.util.ArrayList" %>
+<%@ page import="org.apache.commons.lang.StringUtils" %>
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
 <html>
 <head>
@@ -60,11 +62,28 @@
 
      if (request.getParameter("show") != null) {
 
+         List<String> likes = new ArrayList<String>();
+         int i = 0;
+         for (String keyword: params.get("keyword").toString().split("\\s")) {
+             keyword = keyword.trim();
+             if (keyword.isEmpty()) {
+                 continue;
+             }
+             params.put("keyword"+i, keyword);
+             likes.add("upper(concat(mark, ' ', model)) like upper(concat('%',:keyword" + i + ",'%'))");
+             i ++;
+         }
+         String where = "";
+         if (likes.size() > 0) {
+             where = "where "+StringUtils.join(likes, " or ");
+         }
+         params.remove("keyword");
+
          List<Map<String, Object>> data = namedTemplate.queryForList(
                  "" +
                          "select mark, model, year, avg(price) prc, count(*) cnt " +
                          "from offers " +
-                         "where upper(concat(mark, ' ', model)) like upper(concat('%',:keyword,'%')) " +
+                          where + " " +
                          "group by mark, model, year " +
                          "having cnt > :minCount " +
                          "and year > :minYear " +
@@ -75,7 +94,7 @@
          pivot.setXAxis("year");
          pivot.setYAxis("mark, model");
          pivot.setZAxis("prc, cnt");
-         pivot.setZFormat("~%,f р (%sшт)");
+         pivot.setZFormat("~%,.0f р (%sшт)");
          request.setAttribute("pivot", pivot);
 
          pageContext.include("generic_pivot.jsp");
