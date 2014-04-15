@@ -1,0 +1,2 @@
+<select style="width:180px" name="available_key">
+	'': '', 'В наличии': '1', 'На заказ': '2', 'В пути': '3', </select>
