@@ -8,6 +8,14 @@
 <%@ page import="org.apache.commons.lang.ObjectUtils" %>
 <%@ page import="java.util.ArrayList" %>
 <%@ page import="org.apache.commons.lang.StringUtils" %>
+<%@ page import="net.kkolyan.pivot.GroupUtil" %>
+<%@ page import="java.util.Arrays" %>
+<%@ page import="java.util.Collection" %>
+<%@ page import="net.kkolyan.pivot.Aggregation" %>
+<%@ page import="net.kkolyan.pivot.Aggregators" %>
+<%@ page import="net.kkolyan.pivot.MapListH2WrappingExtractor" %>
+<%@ page import="org.springframework.dao.DataAccessException" %>
+<%@ page import="java.io.IOException" %>
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
 <html>
 <head>
@@ -73,31 +81,38 @@
              likes.add("upper(concat(mark, ' ', model)) like upper(concat('%',:keyword" + i + ",'%'))");
              i ++;
          }
-         String where = "";
+         String keywordMatching = "1=1";
          if (likes.size() > 0) {
-             where = "where "+StringUtils.join(likes, " or ");
+             keywordMatching = StringUtils.join(likes, " or ");
          }
          params.remove("keyword");
 
-         List<Map<String, Object>> data = namedTemplate.queryForList(
-                 "" +
-                         "select mark, model, year, avg(price) prc, count(*) cnt " +
-                         "from offers " +
-                          where + " " +
-                         "group by mark, model, year " +
-                         "having cnt > :minCount " +
-                         "and year > :minYear " +
-                         "and prc > :minPrice and prc < :maxPrice " +
-                         "order by mark, model", params);
-         net.kkolyan.pivot.Pivot pivot = new net.kkolyan.pivot.Pivot();
-         pivot.setData(data);
-         pivot.setXAxis("year");
-         pivot.setYAxis("mark, model");
-         pivot.setZAxis("prc, cnt");
-         pivot.setZFormat("~%,.0f р (%sшт)");
-         request.setAttribute("pivot", pivot);
+         try {
+             List<Map<String, Object>> data = namedTemplate.query(
+                     "" +
+                             "select mark, model, year, price " +
+                             "from offers " +
+                             "where (" + keywordMatching + ") " +
+                             "and year > :minYear ", params, new MapListH2WrappingExtractor("x", "" +
+                     "select mark, model, year, cast(median(price) as double) prc, count(*) cnt " +
+                     "from x " +
+                     "group by mark, model, year " +
+                     "having cnt > :minCount " +
+                     "and prc > :minPrice and prc < :maxPrice " +
+                     "order by mark, model", params));
 
-         pageContext.include("generic_pivot.jsp");
+             Pivot pivot = new Pivot();
+             pivot.setData(data);
+             pivot.setXAxis("year");
+             pivot.setYAxis("mark, model");
+             pivot.setZAxis("prc, cnt");
+             pivot.setZFormat("~%,.0f р (%sшт)");
+             request.setAttribute("pivot", pivot);
+
+             pageContext.include("generic_pivot.jsp");
+         } catch (Exception e) {
+             e.printStackTrace(response.getWriter());
+         }
      }
 
  %>
