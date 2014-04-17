@@ -94,7 +94,10 @@
                              "from offers " +
                              "where (" + keywordMatching + ") " +
                              "and year > :minYear ", params, new MapListH2WrappingExtractor("x", "" +
-                     "select mark, model, year, cast(median(price) as double) prc, count(*) cnt " +
+                     "select mark, model, year, " +
+                     "cast(median(price) as double) prc, " +
+                     "count(*) cnt, " +
+                     "cast((max(price) - min(price)) as double) as d " +
                      "from x " +
                      "group by mark, model, year " +
                      "having cnt > :minCount " +
@@ -105,8 +108,8 @@
              pivot.setData(data);
              pivot.setXAxis("year");
              pivot.setYAxis("mark, model");
-             pivot.setZAxis("prc, cnt");
-             pivot.setZFormat("~%,.0f р (%sшт)");
+             pivot.setZAxis("prc, d, cnt");
+             pivot.setZFormat("~%,.0f, Δ%,.0f (%sшт)");
              request.setAttribute("pivot", pivot);
 
              pageContext.include("generic_pivot.jsp");
