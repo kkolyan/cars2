@@ -67,7 +67,7 @@
 %></tr><%
     }
 %><tr><%
-%><th><a href="http://google.com/search?q=<%=y%>" target="_blank"><%=y%></a></th><%
+%><th><a href="http://www.google.com/search?q=<%=y%>" target="_blank"><%=y%></a></th><%
     for (Object x: xValues) {
         Object v = values.get(Arrays.asList(x, y));
 %><td><%= v == null ? "" : v %></td><%
