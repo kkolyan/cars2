@@ -89,6 +89,11 @@
                 <artifactId>maven-war-plugin</artifactId>
                 <version>2.1.1</version>
             </plugin>
+            <plugin>
+                <groupId>org.apache.tomcat.maven</groupId>
+                <artifactId>tomcat7-maven-plugin</artifactId>
+                <version>2.2</version>
+            </plugin>
         </plugins>
         <resources>
             <resource>
@@ -99,4 +104,5 @@
             </resource>
         </resources>
     </build>
+
 </project>

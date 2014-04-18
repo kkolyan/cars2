@@ -94,7 +94,7 @@
                              "select mark, model, year, price, running " +
                              "from offers " +
                              "where (" + keywordMatching + ") " +
-                             "and year > :minYear ", params, new MapListH2WrappingExtractor("x", "" +
+                             "and year >= :minYear ", params, new MapListH2WrappingExtractor("x", "" +
                      "select mark, model, year, " +
                      "cast(min(price) as int) prc_min, " +
                      "cast(max(price) as int) prc_max, " +
@@ -105,8 +105,8 @@
                      "count(*) cnt " +
                      "from x " +
                      "group by mark, model, year " +
-                     "having cnt > :minCount " +
-                     "and prc_med > :minPrice and prc_med < :maxPrice " +
+                     "having cnt >= :minCount " +
+                     "and prc_med >= :minPrice and prc_med <= :maxPrice " +
                      "order by mark, model", params));
 
              Pivot pivot = new Pivot();
