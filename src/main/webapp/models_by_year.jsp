@@ -8,13 +8,15 @@
 <%@ page import="java.util.ArrayList" %>
 <%@ page import="org.apache.commons.lang.StringUtils" %>
 <%@ page import="net.kkolyan.pivot.MapListH2WrappingExtractor" %>
+<%@ page import="net.kkolyan.pivot.KeywordExpressionParser" %>
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
 <%!
     String getParameter(HttpServletRequest request, String name, String defaultValue) {
         String value = request.getParameter(name);
         if (value == null || value.isEmpty()) {
-            return defaultValue;
+            value = defaultValue;
         }
+        value = value.replace("\"", "&quot;");
         return value;
     }
 %>
@@ -28,6 +30,7 @@
         td,th {
             border: 1px solid #CCC;
             padding: 1px 5px;
+            min-width: 240px;
         }
         th {
             background: #EEE;
@@ -36,10 +39,6 @@
 </head>
 <body>
     <form>
-        <label>
-            Название содержит
-            <input name="keyword" value="<%=getParameter(request, "keyword","")%>"/>
-        </label>
         <label>
             Год выпуска от
             <input name="minYear" value="<%=getParameter(request, "minYear","1900")%>"/>
@@ -58,6 +57,11 @@
         </label>
         <input type="submit" value="Показать"/>
         <input type="hidden" name="show" value="true"/>
+        <br/>
+        <label>
+            Название содержит
+            <input name="keyword" size="100" value="<%=getParameter(request, "keyword","")%>"/>
+        </label>
     </form>
  <%
      response.flushBuffer();
@@ -73,7 +77,7 @@
 
          List<String> likes = new ArrayList<String>();
          int i = 0;
-         for (String keyword: params.get("keyword").toString().split("\\s")) {
+         for (String keyword: KeywordExpressionParser.parseKeywordExpression(params.get("keyword").toString())) {
              keyword = keyword.trim();
              if (keyword.isEmpty()) {
                  continue;
