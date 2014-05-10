@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcOperations;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.jdbc.core.simple.SimpleJdbcInsert;
 import org.springframework.scheduling.annotation.Scheduled;
 
 import java.io.IOException;
@@ -15,15 +16,7 @@ import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
 import java.net.URL;
 import java.net.URLEncoder;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import static org.apache.commons.lang.StringUtils.*;
 
@@ -76,6 +69,9 @@ public class OffersImportTask {
         out.println("offers import started at "+now);
 
         int n = 0;
+        int skipped = 0;
+
+        Random random = new Random();
 
         for (Map.Entry<String, String> mark: marks.entrySet()) {
 
@@ -85,7 +81,8 @@ public class OffersImportTask {
 
                 if (interval > 0) {
                     try {
-                        Thread.sleep(interval);
+                        long shiftedInterval = (long) ((1 + random.nextDouble() * 0.25) * interval);
+                        Thread.sleep(shiftedInterval);
                     } catch (InterruptedException e) {
                         throw new IllegalStateException(e);
                     }
@@ -104,9 +101,11 @@ public class OffersImportTask {
                     if (!existingOffers.contains(offerUrl)) {
                         saveOffer(offer);
                         n ++;
+                    } else {
+                        skipped ++;
                     }
                 }
-                out.println(n+" offers parsed");
+                out.println(n+" offers parsed, "+ skipped +" skipped");
             }
         }
         out.println("offers import finished at "+new Date());
@@ -162,8 +161,10 @@ public class OffersImportTask {
 
         NamedParameterJdbcOperations operations = new NamedParameterJdbcTemplate(jdbcTemplate);
 
-        offer = new LinkedHashMap<String, Object>(offer);
-        operations.update("insert into offers ("+ join(offer.keySet(), ", ")+") values (:"+ join(offer.values(), ", :")+")", offer);
+        Collection<String> columns = new ArrayList<String>(offer.keySet());
+        SimpleJdbcInsert insert = new SimpleJdbcInsert(jdbcTemplate);
+        insert.setTableName("offers");
+        insert.execute(offer);
     }
 
     public void setJdbcTemplate(JdbcTemplate jdbcTemplate) {
@@ -182,21 +183,5 @@ public class OffersImportTask {
             return Parser.parse(document, mark, now);
         }
         throw new IllegalStateException("can't access "+url);
-    }
-
-    public static void main(String[] args) {
-        OffersImportTask task = new OffersImportTask() {
-            @Override
-            protected List<String> fetchExistingOfferUrls() {
-                return new ArrayList<String>();
-            }
-
-            @Override
-            protected void saveOffer(Map<String, Object> offer) {
-                System.out.println(offer);
-            }
-        };
-
-        task.doImport();
     }
 }

@@ -19,9 +19,13 @@ import java.util.Map;
  */
 public class Parser {
     public static Collection<Map<String,Object>> parse(Document document, String mark, Date now) {
+
+        if (document.select("h1").text().contains("Ваш IP адрес временно заблокирован")) {
+            throw new IllegalStateException(document.select("h1").text());
+        }
+
         Elements rows = document.select("table.list tbody tr");
         if (rows.isEmpty() || rows.size() == 1) {
-            System.out.println(document);
             return new ArrayList<Map<String, Object>>(0);
         }
         Collection<Map<String,Object>> offers = new ArrayList<Map<String,Object>>();
