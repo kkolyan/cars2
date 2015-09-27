@@ -8,15 +8,15 @@
 		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.0.xsd http://www.springframework.org/schema/task http://www.springframework.org/schema/task/spring-task.xsd">
 
     <context:annotation-config />
-    <task:annotation-driven/>
 
-    <context:property-placeholder
-            location="file:${user.home}/cars2.properties"
-            ignore-resource-not-found="true"
-            system-properties-mode="OVERRIDE"/>
+    <bean id="jdbcTemplate" class="org.springframework.jdbc.core.JdbcTemplate">
+        <property name="dataSource" ref="dataSource"/>
+    </bean>
 
-    <import resource="dataSource.xml"/>
-
-    <bean class="net.kkolyan.pivot.net.kkolyan.cars2.autoru.OffersImportTask"/>
+    <bean id="dataSource" class="com.mysql.jdbc.jdbc2.optional.MysqlConnectionPoolDataSource">
+        <property name="url" value="${dataSource.url}"/>
+        <property name="user" value="${dataSource.user}"/>
+        <property name="password" value="${dataSource.password}"/>
+    </bean>
 </beans>
 

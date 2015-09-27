@@ -55,6 +55,10 @@
             Кол-во предложений от
             <input name="minCount" value="<%=getParameter(request, "minCount","0")%>"/>
         </label>
+        <label>
+            Предложения не старее N месяцев
+            <input name="maxOfferAgeMonth" value="<%=getParameter(request, "maxOfferAgeMonth","3")%>"/>
+        </label>
         <input type="submit" value="Показать"/>
         <input type="hidden" name="show" value="true"/>
         <br/>
@@ -93,11 +97,13 @@
          params.remove("keyword");
 
          try {
+             template.execute("set names utf8");
              List<Map<String, Object>> data = namedTemplate.query(
                      "" +
                              "select mark, model, year, price, running " +
                              "from offers " +
-                             "where (" + keywordMatching + ") " +
+                             "where parsed_at > date_add(now(), interval -1 * :maxOfferAgeMonth month) " +
+                             "and (" + keywordMatching + ") " +
                              "and year >= :minYear ", params, new MapListH2WrappingExtractor("x", "" +
                      "select mark, model, year, " +
                      "cast(min(price) as int) prc_min, " +

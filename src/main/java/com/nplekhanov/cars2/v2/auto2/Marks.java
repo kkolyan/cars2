@@ -1,4 +1,4 @@
-package com.nplekhanov.cars2.v2;
+package com.nplekhanov.cars2.v2.auto2;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
