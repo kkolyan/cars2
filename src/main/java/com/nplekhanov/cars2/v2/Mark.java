@@ -3,7 +3,7 @@ package com.nplekhanov.cars2.v2;
 /**
  * @author nplekhanov
  */
-public class Mark {
+public class Mark implements MeaningfulTextProvider {
     private String markId;
     private String markTitle;
 
@@ -17,6 +17,19 @@ public class Mark {
     }
 
     public String getMarkTitle() {
+        return markTitle;
+    }
+
+    @Override
+    public String toString() {
+        return "Mark{" +
+                "markId='" + markId + '\'' +
+                ", markTitle='" + markTitle + '\'' +
+                '}';
+    }
+
+    @Override
+    public String asMeaningFulText() {
         return markTitle;
     }
 }

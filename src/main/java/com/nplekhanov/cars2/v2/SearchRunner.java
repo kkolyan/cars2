@@ -1,8 +1,11 @@
 package com.nplekhanov.cars2.v2;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Predicate;
-import org.apache.http.HttpRequest;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.http.HttpResponse;
+import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpUriRequest;
@@ -16,72 +19,67 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 
 import java.io.*;
+import java.text.SimpleDateFormat;
 import java.util.*;
 
 /**
  * @author nplekhanov
  */
 public class SearchRunner {
-    private static Bookmark bookmark
-            ;
-//            = new Bookmark("Cadillac", 2012, 1);
 
-    public static void main(String[] args) throws IOException {
-
-    }
-    public static void parse(ParsingStrategy strategy) throws IOException {
+    public static <T extends MeaningfulTextProvider> void parse(ParsingStrategy<T> strategy) throws IOException {
         HttpClient client = new DefaultHttpClient();
         HttpContext context = new BasicHttpContext();
         context.setAttribute(CoreProtocolPNames.USER_AGENT, "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/44.0.2403.157 Safari/537.36");
         context.setAttribute(ClientContext.COOKIE_STORE, new BasicCookieStore());
 
-        try (OutputStream target = new BufferedOutputStream(new FileOutputStream("results."+System.currentTimeMillis()+".txt"))) {
+        String folder = "dumps/"+new SimpleDateFormat("yyyy.MM.dd_HHmmss_SSS").format(new Date());
+        new File(folder).mkdirs();
 
-            for (int i = 0; i < 20; i ++) {
-                int year = 2015 - i;
-                for (Mark mark: strategy.getMarks()) {
-                    for (int p = 1; p < 200; p ++) {
-                        if (bookmark != null) {
-                            if (!bookmark.equals(new Bookmark(mark.getMarkTitle(), year, p))) {
-                                continue;
-                            }
-                            bookmark = null;
+        ObjectMapper mapper = new ObjectMapper();
+        try (OutputStream target = new BufferedOutputStream(new FileOutputStream(new File(folder, "parsed.txt")))) {
+
+            for (T param: strategy.getParams()) {
+                for (int p = 1; p < 200; p ++) {
+                    System.out.print(new Date()+", param: " + param + ", page: " + p);
+                    String url = strategy.createUrl(param, p);
+                    String html = request(url, client, context, strategy.getReferer());
+                    Collection<? extends ShortDescription> list;
+                    try {
+                        Document document = Jsoup.parse(html);
+                        list = strategy.parse(document, param);
+                        if (!list.isEmpty()) {
+                            File file = new File(folder, param.asMeaningFulText()+"."+String.format("%03d", p)+".html");
+                            file.getParentFile().mkdirs();
+                            FileUtils.write(file, html);
                         }
-                        System.out.print(new Date()+", mark: " + mark.getMarkTitle() + ", year: " + year + ", page: " + p);
-                        String url = strategy.createUrl(mark, year, p);
-                        String html = request(url, client, context, strategy);
-                        Collection<? extends ShortDescription> list;
+                    } catch (Exception e) {
+                        System.out.println(html);
+                        throw new IllegalStateException(e);
+                    }
+                    System.out.println(", fetched "+list.size()+" offers, "+Lambda.filter(list, new Predicate<ShortDescription>() {
+                        @Override
+                        public boolean apply(ShortDescription o) {
+                            return o.getException() != null;
+                        }
+                    }).size()+" of them failed");
+                    for (ShortDescription o: list) {
                         try {
-                            Document document = Jsoup.parse(html);
-                            list = strategy.parse(document, mark);
+                            target.write(mapper.writeValueAsString(o).getBytes());
+                            target.write("\r\n".getBytes());
+                            target.flush();
                         } catch (Exception e) {
-                            System.out.println(html);
                             throw new IllegalStateException(e);
                         }
-                        System.out.println(", fetched "+list.size()+" offers, "+Lambda.filter(list, new Predicate<ShortDescription>() {
-                            @Override
-                            public boolean apply(ShortDescription o) {
-                                return o.getException() != null;
-                            }
-                        })+" of them failed");
-                        if (list.isEmpty()) {
-                            break;
-                        }
-                        for (ShortDescription o: list) {
-                            try {
-                                target.write(o.toJson().getBytes());
-                                target.write("\r\n".getBytes());
-                                target.flush();
-                            } catch (Exception e) {
-                                throw new IllegalStateException(e);
-                            }
-                        }
+                    }
 
-                        try {
-                            Thread.sleep(5000+new Random().nextInt(10000));
-                        } catch (InterruptedException e) {
-                            throw new IllegalStateException(e);
-                        }
+                    try {
+                        Thread.sleep(strategy.getPauseMillis());
+                    } catch (InterruptedException e) {
+                        throw new IllegalStateException(e);
+                    }
+                    if (list.size() < strategy.getEntriesPerPageThreshold()) {
+                        break;
                     }
                 }
 
@@ -92,19 +90,33 @@ public class SearchRunner {
 
     }
 
-    private static String request(String url, HttpClient client, HttpContext context, ParsingStrategy strategy) {
+    static String request(String url, HttpClient client, HttpContext context, String referer) {
+        if (url.startsWith("file:")) {
+            try {
+                return FileUtils.readFileToString(new File(url.substring("file:".length())));
+            } catch (IOException e) {
+                throw new IllegalStateException(e);
+            }
+        }
 
         int attemptsLeft = 10;
         while (true) {
             String html;
-            HttpUriRequest request = new HttpGet(url);
-            request.setHeader("Referer", strategy.getReferer());
+            HttpGet request = new HttpGet(url);
+            request.setHeader("Referer", referer);
             HttpResponse response;
             try {
                 response = client.execute(request, context);
+            } catch (ClientProtocolException e) {
+                throw new IllegalStateException(e);
             } catch (IOException e) {
+                try {
+                    request.releaseConnection();
+                } catch (Exception e1) {
+                    e1.printStackTrace();
+                }
                 if (attemptsLeft > 0) {
-                    System.out.println("attempt failed with "+e);
+                    System.err.println("attempt failed with "+e);
                     attemptsLeft --;
                     try {
                         Thread.sleep(30000);
@@ -120,6 +132,11 @@ public class SearchRunner {
                 response.getEntity().writeTo(buffer);
                 html = buffer.toString();
             } catch (Exception e) {
+                try {
+                    request.releaseConnection();
+                } catch (Exception e1) {
+                    e1.printStackTrace();
+                }
                 if (attemptsLeft > 0) {
                     System.out.println(e);
                     attemptsLeft --;

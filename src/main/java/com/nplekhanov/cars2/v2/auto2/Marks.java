@@ -9,6 +9,10 @@ import java.util.Map;
 public class Marks {
     private static Map<String,String> marks = new LinkedHashMap<>();
     static {
+        marks.put("236", "Skoda");
+        marks.put("82", "Ford");
+        marks.put("166", "Mazda");
+        marks.put("181", "Mitsubishi");
         marks.put("288", "ВАЗ (Lada)");
         marks.put("1", "AC");
         marks.put("5", "Acura");
@@ -53,7 +57,6 @@ public class Marks {
         marks.put("79", "Ferrari");
         marks.put("80", "Fiat");
         marks.put("2372", "Fisker");
-        marks.put("82", "Ford");
         marks.put("588", "Foton");
         marks.put("88", "Geely");
         marks.put("90", "GMC");
@@ -89,14 +92,12 @@ public class Marks {
         marks.put("163", "Maruti");
         marks.put("164", "Maserati");
         marks.put("165", "Maybach");
-        marks.put("166", "Mazda");
         marks.put("167", "McLaren");
         marks.put("170", "Mercedes-Benz");
         marks.put("171", "Mercury");
         marks.put("173", "Metrocab");
         marks.put("174", "MG");
         marks.put("177", "MINI");
-        marks.put("181", "Mitsubishi");
         marks.put("182", "Mitsuoka");
         marks.put("185", "Morgan");
         marks.put("191", "Nissan");
@@ -118,7 +119,6 @@ public class Marks {
         marks.put("226", "Saturn");
         marks.put("230", "Scion");
         marks.put("231", "SEAT");
-        marks.put("236", "Skoda");
         marks.put("237", "Smart");
         marks.put("242", "Spyker");
         marks.put("243", "SsangYong");

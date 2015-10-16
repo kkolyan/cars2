@@ -13,6 +13,7 @@ public class Pivot {
     String yAxis;
     String zAxis;
     String zFormat;
+    private String yFormat;
 
     public List<Map<String, Object>> getData() {
         return data;
@@ -52,5 +53,13 @@ public class Pivot {
 
     public void setZFormat(String zFormat) {
         this.zFormat = zFormat;
+    }
+
+    public void setYFormat(String yFormat) {
+        this.yFormat = yFormat;
+    }
+
+    public String getYFormat() {
+        return yFormat;
     }
 }

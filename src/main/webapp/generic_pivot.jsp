@@ -34,20 +34,20 @@
         Collection<Object> xValues;
         Collection<Object> yValues;
         Map<String,?> firstRow = pivot.getData().get(0);
-        if (getValue(firstRow, pivot.getYAxis(), null) instanceof Comparable) {
-            yValues = new TreeSet<Object>();
-        } else {
+//        if (getValue(firstRow, pivot.getYAxis(), null) instanceof Comparable) {
+//            yValues = new TreeSet<Object>();
+//        } else {
             yValues = new LinkedHashSet<Object>();
-        }
-        if (getValue(firstRow, pivot.getXAxis(), null) instanceof Comparable) {
-            xValues = new TreeSet<Object>();
-        } else {
+//        }
+//        if (getValue(firstRow, pivot.getXAxis(), null) instanceof Comparable) {
+//            xValues = new TreeSet<Object>();
+//        } else {
             xValues = new LinkedHashSet<Object>();
-        }
+//        }
         Map<List,Object> values = new HashMap<List, Object>();
         for (Map<String, Object> row: pivot.getData()) {
             Object x = getValue(row, pivot.getXAxis(), null);
-            Object y = getValue(row, pivot.getYAxis(), null);
+            Object y = getValue(row, pivot.getYAxis(), pivot.getYFormat());
             xValues.add(x);
             yValues.add(y);
             Object z = getValue(row, pivot.getZAxis(), pivot.getZFormat());
@@ -67,7 +67,7 @@
 %></tr><%
     }
 %><tr><%
-%><th><a href="http://www.google.com/search?q=<%=y%>" target="_blank"><%=y%></a></th><%
+%><th nowrap><%=y%></th><%
     for (Object x: xValues) {
         Object v = values.get(Arrays.asList(x, y));
 %><td><%= v == null ? "" : v %></td><%

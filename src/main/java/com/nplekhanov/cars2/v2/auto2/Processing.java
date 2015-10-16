@@ -27,21 +27,55 @@ public class Processing {
     private static ApplicationContext applicationContext;
     private static JdbcTemplate jdbcTemplate;
 
+    static long startedAt;
+    static int linesDone;
+    static long total;
+
     static {
         applicationContext = new ClassPathXmlApplicationContext("processing.xml");
         jdbcTemplate = applicationContext.getBean(JdbcTemplate.class);
     }
 
     public static void main(String[] args) throws IOException {
-        ObjectMapper mapper = new ObjectMapper();
-        Collection<AutoRuShortDescription> downloaded = new ArrayList<>();
-        for (File file: new File("downloaded").listFiles()) {
-            if (file.getName().endsWith(".txt")) {
-                for (String line: FileUtils.readLines(file)) {
-                    downloaded.add(mapper.readValue(line, AutoRuShortDescription.class));
-                }
+        total = 0;
+        for (File dir: new File("dumps/verified").listFiles()) {
+            Scanner scanner = new Scanner(new File(dir, "parsed.txt"));
+            while (scanner.hasNextLine()) {
+                String line = scanner.nextLine();
+                total ++;
             }
         }
+
+        System.out.println(new Date()+" total: "+total);
+
+        startedAt = System.currentTimeMillis();
+
+        linesDone = 0;
+        Collection<String> buffer = new ArrayList<>();
+        for (File dir: new File("dumps/verified").listFiles()) {
+            try (Scanner scanner = new Scanner(new File(dir, "parsed.txt"))) {
+                while (scanner.hasNextLine()) {
+                    String line = scanner.nextLine();
+                    buffer.add(line);
+                    if (buffer.size() >= 10000) {
+                        store(buffer);
+                        buffer.clear();
+                    }
+                    linesDone++;
+                }
+                store(buffer);
+            }
+        }
+    }
+
+    private static void store(Collection<String> lines) throws IOException {
+        ObjectMapper mapper = new ObjectMapper();
+        Collection<AutoRuShortDescription> downloaded = new ArrayList<>();
+
+        for (String line: lines) {
+            downloaded.add(mapper.readValue(line, AutoRuShortDescription.class));
+        }
+
         for (AutoRuShortDescription d: downloaded) {
             if (d.getModel() == null && d.getMark() == null && d.getTitle() != null && d.lookupCardDetails() != null) {
 //                for (String mark: Marks.getMarks().values()) {
@@ -51,8 +85,12 @@ public class Processing {
 //                        break;
 //                    }
 //                }
+                String title = d.getTitle();
+                d.setModel(title.replace(d.getRequestedMark(), "").trim());
+                d.setMark(d.getRequestedMark());
+
                 if (d.getModel() == null) {
-                    d.setMark(d.lookupCardDetails().getCard_mark());
+                    d.setMark(d.getRequestedMark());
                     d.setModel(d.lookupCardDetails().getCard_model());
                 }
                 if (d.getModel() == null) {
@@ -106,6 +144,7 @@ public class Processing {
             }
         };
 
+        if (false)
         for (Map.Entry<String, Collection<AutoRuShortDescription>> entry: Lambda.groupBy(succeed, getMark).entrySet()) {
             System.out.println("Mark: " + entry.getKey() + " (" + entry.getValue().size() + ")");
 
@@ -115,7 +154,7 @@ public class Processing {
         }
 
         int i = 0;
-        for (final List<AutoRuShortDescription> batch: Lists.partition(succeed, 1000)) {
+        for (final List<AutoRuShortDescription> batch: Lists.partition(succeed, 10000)) {
 
             String q = "insert into offers (\n" +
                     "    mark,\n" +
@@ -124,6 +163,7 @@ public class Processing {
                     "    price,\n" +
                     "    year,\n" +
                     "    engine,\n" +
+                    "    subtitle,\n" +
                     "    type,\n" +
                     "    right_hand,\n" +
                     "    running,\n" +
@@ -133,6 +173,7 @@ public class Processing {
                     "    availability,\n" +
                     "    parsed_at\n" +
                     ") values (\n" +
+                    "    ?,\n" +
                     "    ?,\n" +
                     "    ?,\n" +
                     "    ?,\n" +
@@ -159,7 +200,8 @@ public class Processing {
                     ps.setInt(++n, parseInt(d.getPrice()));
                     ps.setInt(++n, parseInt(d.getYear()));
                     ps.setObject(++n, d.getShortDetails());
-                    ps.setObject(++n, null);
+                    ps.setObject(++n, d.getSubTitle());
+                    ps.setObject(++n, d.getBodyType());
                     ps.setObject(++n, null);
                     ps.setInt(++n, parseInt(d.getRun()));
                     ps.setObject(++n, null);
@@ -174,10 +216,14 @@ public class Processing {
                     return batch.size();
                 }
             };
-//            jdbcTemplate.batchUpdate(q + ")", pss);
+            jdbcTemplate.batchUpdate(q + ")", pss);
             i += batch.size();
             System.out.println(new Date()+" inserted "+i+" of "+succeed.size()+" offers");
         }
+
+        double progress = 1.0 * linesDone / total;
+        long eta = (long) ((1 - progress) * (System.currentTimeMillis() - startedAt) / progress);
+        System.out.println(new Date()+" "+linesDone+" of "+ total+"("+String.format("%.02f", progress * 100.0)+")%, ETA: "+new Duration(eta).format());
     }
 
     private static int parseInt(String text) {

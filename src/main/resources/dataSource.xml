@@ -17,6 +17,7 @@
         <property name="url" value="${dataSource.url}"/>
         <property name="user" value="${dataSource.user}"/>
         <property name="password" value="${dataSource.password}"/>
+        <property name="characterEncoding" value="UTF-8"/>
     </bean>
 </beans>
 

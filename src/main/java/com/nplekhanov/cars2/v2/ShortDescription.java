@@ -5,5 +5,4 @@ package com.nplekhanov.cars2.v2;
  */
 public interface ShortDescription {
     String getException();
-    String toJson();
 }
